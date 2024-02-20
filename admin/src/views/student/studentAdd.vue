@@ -1,203 +1,164 @@
-<script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { ElMessage, FormInstance, FormRules } from "element-plus";
-import { validEmail, validPhone, validName } from "@/utils/validate";
-import { addStu } from "../../api/student";
-import { useRouter } from "vue-router";
-import { findAllcom } from "../../api/company";
-import aria from '@/assets/json/aria.json';
-import injson from "@/assets/json/industry.json";
-import job from '@/assets/json/job.json';
-import major from '@/assets/json/major.json';
+<template>
+  <div>
+    <el-steps :active="activeStep" finish-status="success" align-center style="margin-bottom: 20px;">
+      <el-step title="第一步"></el-step>
+      <el-step title="第二步"></el-step>
+      <el-step title="第三步"></el-step>
+    </el-steps>
 
-let inoptions = ref();
-let joboptions = ref();
-let companyOptions = ref([]);
-const router = useRouter();
-const ruleFormRef = ref<FormInstance>();
-const ruleForm = ref({
-  stuname: "",
-  address: [],
-  gender: ref(""),
-  stuclass: null,
-  // idcard: null,
-  // stuprofession: "",
-  email: "",
-  workplace: "",
-  job: "",
-  salary: null,
-  industry: "",
-  phone: null,
-  company: "",
-  major: [],
-  leaveTime: '',
-  workStatus: ref(''),
-});
+    <el-card v-if="activeStep === 0">
+      <el-form label-width="120px" ref="form">
+        <el-form-item label="输入搜索次数" prop="nSearches">
+          <el-input v-model="nSearches" placeholder="输入搜索次数"></el-input>
+        </el-form-item>
 
-onMounted(async () => {
-  inoptions.value = injson;
-  joboptions.value = job
-  let value: any = await findAllcom();
-  companyOptions.value = value.map(v => ({
-    value: v.comname,
-    label: v.comname
-  }));
-});
-//提交
-const onSubmit = async () => {
-  ruleFormRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      const res: any = await addStu(ruleForm.value);
-      console.log(ruleForm.value);
-      console.log(res);
-      if (res._id) {
-        ElMessage({ type: "success", message: "添加成功" });
-        router.push("/student/list");
-      } else {
-        ElMessage({
-          type: "error",
-          message: res?.msg || "网络异常，请稍后重试！"
-        });
-      }
+        <el-form-item>
+          <el-button type="primary" @click="nextStep">下一步</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <el-upload v-if="activeStep === 1" drag :action="importURL" :on-success="uploadSuccess" :before-upload="beforeUpload"
+      :auto-upload="true">
+      <el-button slot="trigger" size="small" type="primary">选择文件</el-button>
+      <div class="el-upload__tip" slot="tip">支持上传 XLSX/XLS 文件</div>
+    </el-upload>
+
+    <el-card v-if="activeStep === 2">
+      <h3>返回的结果：</h3>
+      <el-form label-width="200" v-if="Object.keys(form).length > 0">
+        <el-row justify="center">
+          <el-col v-for="(value, key) in form" :key="key">
+            <el-form-item :label="key">
+              <el-input v-model="form[key]" :readonly="true"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <el-button @click="prevStep" type="primary" size="small">返回上一步</el-button>
+      <el-button @click="downloadCSV" type="primary" size="small">下载结果 CSV</el-button>
+
+    </el-card>
+
+
+    <el-button v-if="activeStep === 1" @click="submit" type="primary" size="small">提交</el-button>
+    <el-button v-show="activeStep === 1" @click="prevStep" slot="tip" size="small">返回</el-button>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, nextTick, watchEffect } from 'vue';
+import { ElMessage } from 'element-plus';
+
+const activeStep = ref(0);
+const nSearches = ref('');
+const files = ref([]);
+const form = ref({});
+const importURL = 'http://localhost:5000/upload';
+let isWaitingResponse = false;
+
+const handleBackendResponse = (data) => {
+  const bestParams = data.best_params;
+  console.log("bestParams: ", bestParams);
+  form.value = {}; // 清空 form
+  for (const key in bestParams) {
+    form.value[key] = bestParams[key];
+  }
+  form.value['best_score'] = data.best_score;
+  console.log("form after assignment: ", form);
+};
+
+const nextStep = () => {
+  (async () => {
+    await nextTick();
+    if (nSearches.value.trim() === '') {
+      ElMessage.error('请输入搜索次数。');
+      return;
     }
+    if (!/^\d+$/.test(nSearches.value)) {
+      ElMessage.error('搜索次数必须为整数。');
+      return;
+    }
+    activeStep.value++;
+  })();
+};
+
+const prevStep = () => {
+  activeStep.value--;
+  files.value = []
+};
+
+const beforeUpload = (file: File) => {
+  if (file.name.split(".")[1] !== "xlsx") {
+    ElMessage.error("请上传xlsx");
+    return false;
+  }
+};
+
+const uploadSuccess = (res, file, filelist) => {
+  files.value.push(file.raw); // 将上传成功的文件添加到 files 中
+  ElMessage({ type: "success", message: "上传成功" });
+};
+
+const downloadCSV = () => {
+  console.log({ best_params: form.value });
+  fetch('http://localhost:5000/generate_features', {
+    method: 'POST',
+    body: JSON.stringify({ best_params: form.value }), // 将前端获取的 form 传给后端
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }).then(response => {
+    if (!response.ok) {
+      throw new Error('网络响应不正常');
+    }
+    return response.blob();
+  }).then(blob => {
+    const url = window.URL.createObjectURL(new Blob([blob]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'features.csv'); // 设置下载的文件名为 features.csv
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  }).catch(error => {
+    console.error('发生了与 fetch 操作相关的问题：', error);
   });
 };
 
-const validateNameRule = (rule: any, value: string, callback: any) => {
-  if (validName(value)) {
-    callback();
-  } else {
-    callback(new Error("请输入正确的名字"));
+const submit = () => {
+  if (!files.value || files.value.length === 0) {
+    ElMessage.error('请上传文件。');
+    return;
   }
+
+  const formData = new FormData();
+  formData.append('file', files.value[0]);
+  formData.append('n_searches', nSearches.value);
+
+  fetch('http://localhost:5000/file1', {
+    method: 'POST',
+    body: formData
+  }).then(response => {
+    if (!response.ok) {
+      throw new Error('网络响应不正常');
+    }
+    return response.json();
+  }).then(data => {
+    isWaitingResponse = false; // 收到后端响应，停止等待
+    handleBackendResponse(data);
+    activeStep.value = 2;
+  }).catch(error => {
+    console.error('发生了与 fetch 操作相关的问题：', error);
+  });
+
+  isWaitingResponse = true; // 开始等待后端响应
 };
 
-const validateEmailRule = (rule: any, value: string, callback: any) => {
-  if (validEmail(value)) {
-    callback();
-  } else {
-    callback(new Error("请输入正确的邮箱"));
+// 监听 isWaitingResponse 变化，当收到后端响应时进入第三步
+watchEffect(() => {
+  if (isWaitingResponse) {
+    // activeStep.value = 2;
   }
-};
-//验证手机号
-const validatePhoneRule = (rule: any, value: string, callback: any) => {
-  if (validPhone(value)) {
-    callback();
-  } else {
-    callback(new Error("请输入正确的手机号"));
-  }
-};
-
-const validateLeaveTimeRule = (rule: any, value: string, callback: any) => {
-  if (Number(value) <= 2023) {
-    callback();
-  } else {
-    callback(new Error("请输入正确的时间"));
-  }
-};
-
-//验证
-const rules = reactive<FormRules>({
-  stuname: [
-    { required: true, message: "请输入名字", trigger: "blur" },
-    { validator: validateNameRule, trigger: "blur" }
-  ],
-  address: [{ required: true, message: "请选择居住地", trigger: "blur" }],
-  gender: [{ required: true, message: "请选择性别", trigger: "blur" }],
-  workStatus: [{ required: true, message: "请选择毕业状态", trigger: "blur" }],
-  stuclass: [{ required: true, message: "请输入班级", trigger: "blur" }],
-  phone: [
-    { required: true, message: "请输入手机号", trigger: "blur" },
-    { validator: validatePhoneRule, trigger: "blur" }
-  ],
-  email: [
-    { required: true, message: "请输入邮箱", trigger: "blur" },
-    { validator: validateEmailRule, trigger: "blur" }
-  ],
-  workplace: [{ required: true, message: "请输入工作地点", trigger: "blur" }],
-  salary: [{ required: true, message: "请输入薪资", trigger: "blur" }],
-  industry: [{ required: true, message: "请输入行业", trigger: "blur" }],
-  job: [{ required: true, message: "请输入岗位", trigger: "blur" }],
-  company: [{ required: true, message: "请输入公司", trigger: "blur" }],
-  major: [{ required: true, message: "请输入专业", trigger: "blur" }],
-  leaveTime: [{ required: true, message: "请输入毕业时间", trigger: "blur" },
-  { validator: validateLeaveTimeRule }]
 });
 </script>
-
-<template>
-  <ElForm :model="ruleForm" ref="ruleFormRef" :rules="rules" label-width="80px" :inline="false" size="default">
-    <ElFormItem label="姓名" prop="stuname">
-      <ElInput v-model.trim="ruleForm.stuname"></ElInput>
-    </ElFormItem>
-
-    <ElFormItem label="性别" prop="gender">
-      <ElRadioGroup v-model="ruleForm.gender">
-        <ElRadioButton label="男" />
-        <ElRadioButton label="女" />
-      </ElRadioGroup>
-    </ElFormItem>
-
-    <ElFormItem label-width="auto" label="是否就业(毕业前)" prop="workStatus">
-      <ElRadioGroup v-model="ruleForm.workStatus">
-        <ElRadioButton label="是" />
-        <ElRadioButton label="否" />
-      </ElRadioGroup>
-    </ElFormItem>
-
-    <ElFormItem label="专业" prop="major">
-      <el-cascader :options="major" v-model="ruleForm.major" clearable filterable :show-all-levels="false">
-      </el-cascader>
-    </ElFormItem>
-
-    <ElFormItem label="行业" prop="industry">
-      <el-cascader :options="inoptions" v-model="ruleForm.industry" clearable filterable :show-all-levels="false">
-      </el-cascader>
-    </ElFormItem>
-    <ElFormItem label="班级" prop="stuclass" style="width: 400px;">
-      <el-slider v-model="ruleForm.stuclass" show-input :min="1" :max="12" />
-      <!-- <ElInput v-model="ruleForm.stuclass"></ElInput> -->
-    </ElFormItem>
-    <ElFormItem label="手机号" prop="phone">
-      <ElInput v-model.trim="ruleForm.phone" maxlength="11"></ElInput>
-    </ElFormItem>
-
-    <ElFormItem label-width="auto" label="毕业时间(年)" prop="leaveTime">
-      <ElInput v-model.trim="ruleForm.leaveTime" placeholder="例如:2023" maxlength="4"></ElInput>
-    </ElFormItem>
-    <ElFormItem label="邮箱" prop="email">
-      <ElInput v-model.trim="ruleForm.email"></ElInput>
-    </ElFormItem>
-
-    <template v-if="ruleForm.workStatus === '是'">
-      <ElFormItem label="薪资(月)" prop="salary">
-        <ElInput v-model.trim="ruleForm.salary" placeholder="例如:8k "></ElInput>
-      </ElFormItem>
-      <ElFormItem label="岗位" prop="job">
-        <el-cascader :options="joboptions" v-model="ruleForm.job" clearable filterable :show-all-levels="false">
-        </el-cascader>
-      </ElFormItem>
-      <ElFormItem label="公司" prop="company">
-        <el-cascader :options="companyOptions" v-model="ruleForm.company" clearable filterable :show-all-levels="false">
-        </el-cascader>
-      </ElFormItem>
-      <ElFormItem label="工作地点" prop="workplace">
-        <ElCascader :options="aria" v-model="ruleForm.workplace" clearable filterable>
-        </ElCascader>
-      </ElFormItem>
-    </template>
-    <ElFormItem label="住址" prop="address">
-      <ElCascader :options="aria" v-model="ruleForm.address" clearable filterable>
-      </ElCascader>
-    </ElFormItem>
-    <ElFormItem>
-      <ElButton type="primary" @click="onSubmit()">立即创建</ElButton>
-      <ElButton>取消</ElButton>
-    </ElFormItem>
-  </ElForm>
-</template>
-
-<style scoped>
-::v-deep .el-input {
-  width: 200px;
-}
-</style>

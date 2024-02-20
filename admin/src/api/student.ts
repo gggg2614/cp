@@ -8,6 +8,9 @@ export const findAllstu = () => {
 export const addStu = data => {
   return http.request("POST", "http://localhost:3000/student", { data });
 };
+export const addP= data => {
+  return http.request("POST", "http://localhost:5000/post", { data });
+};
 
 export const delStu = id => {
   return http.request("DELETE", `http://localhost:3000/student/${id}`);
