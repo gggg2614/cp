@@ -27,8 +27,8 @@ def evaluate_model_with_subset(model, feature_subset, X_train, y_train, X_test, 
         return float('inf'), -1, feature_subset
     
 # 读取数据
-filepath = "E:/LBE/T91/"
-filename = "T91_data_noSarO.xlsx"
+filepath = ""
+filename = "test.xlsx"
 
 full_path = os.path.join(filepath, filename)
 

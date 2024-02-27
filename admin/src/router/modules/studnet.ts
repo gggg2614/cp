@@ -14,7 +14,7 @@ export default {
       showParent: true,
       component: () => import("@/views/student/studentAdd.vue"),
       meta: {
-        title: "新增"
+        title: "符号回归特征"
       }
     },
     {
@@ -23,8 +23,17 @@ export default {
       showParent: true,
       component: () => import("@/views/student/studentList.vue"),
       meta: {
-        title: "毕业"
+        title: "特征选择"
       }
-    }
+    },
+    {
+      path: "/student/t",
+      name: "studentt",
+      showParent: true,
+      component: () => import("@/views/student/studentt.vue"),
+      meta: {
+        title: "训练模型"
+      }
+    },
   ]
 } as unknown as RouteConfigsTable;

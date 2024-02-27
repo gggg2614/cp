@@ -7,9 +7,9 @@
     </el-steps>
 
     <el-card v-if="activeStep === 0">
-      <el-form label-width="120px" ref="form">
+      <el-form label-width="120px" :model="form">
         <el-form-item label="输入搜索次数" prop="nSearches">
-          <el-input v-model="nSearches" placeholder="输入搜索次数"></el-input>
+          <el-input v-model="nSearches" placeholder="输入搜索次数" type="number" min="0"></el-input>
         </el-form-item>
 
         <el-form-item>
@@ -36,12 +36,12 @@
         </el-row>
       </el-form>
       <el-button @click="prevStep" type="primary" size="small">返回上一步</el-button>
-      <el-button @click="downloadCSV" type="primary" size="small">下载结果 CSV</el-button>
+      <el-button @click="downloadCSV" type="primary" size="small" :loading="csvLoading">下载结果 CSV</el-button>
 
     </el-card>
 
 
-    <el-button v-if="activeStep === 1" @click="submit" type="primary" size="small">提交</el-button>
+    <el-button v-if="activeStep === 1" @click="submit" type="primary" size="small" :loading="subLoading">提交</el-button>
     <el-button v-show="activeStep === 1" @click="prevStep" slot="tip" size="small">返回</el-button>
   </div>
 </template>
@@ -54,8 +54,9 @@ const activeStep = ref(0);
 const nSearches = ref('');
 const files = ref([]);
 const form = ref({});
+const subLoading = ref(false);
+const csvLoading = ref(false);
 const importURL = 'http://localhost:5000/upload';
-let isWaitingResponse = false;
 
 const handleBackendResponse = (data) => {
   const bestParams = data.best_params;
@@ -69,6 +70,10 @@ const handleBackendResponse = (data) => {
 };
 
 const nextStep = () => {
+  if (parseInt(nSearches.value) <= 0) {
+    ElMessage.error('请输入大于0的整数')
+    return;
+  }
   (async () => {
     await nextTick();
     if (nSearches.value.trim() === '') {
@@ -101,7 +106,6 @@ const uploadSuccess = (res, file, filelist) => {
 };
 
 const downloadCSV = () => {
-  console.log({ best_params: form.value });
   fetch('http://localhost:5000/generate_features', {
     method: 'POST',
     body: JSON.stringify({ best_params: form.value }), // 将前端获取的 form 传给后端
@@ -116,6 +120,7 @@ const downloadCSV = () => {
   }).then(blob => {
     const url = window.URL.createObjectURL(new Blob([blob]));
     const link = document.createElement('a');
+    csvLoading.value = true;
     link.href = url;
     link.setAttribute('download', 'features.csv'); // 设置下载的文件名为 features.csv
     document.body.appendChild(link);
@@ -123,6 +128,8 @@ const downloadCSV = () => {
     link.parentNode.removeChild(link);
   }).catch(error => {
     console.error('发生了与 fetch 操作相关的问题：', error);
+  }).finally(()=>{
+    csvLoading.value = false;
   });
 };
 
@@ -131,11 +138,11 @@ const submit = () => {
     ElMessage.error('请上传文件。');
     return;
   }
-
   const formData = new FormData();
   formData.append('file', files.value[0]);
   formData.append('n_searches', nSearches.value);
-
+  
+  subLoading.value = true;
   fetch('http://localhost:5000/file1', {
     method: 'POST',
     body: formData
@@ -145,20 +152,13 @@ const submit = () => {
     }
     return response.json();
   }).then(data => {
-    isWaitingResponse = false; // 收到后端响应，停止等待
     handleBackendResponse(data);
     activeStep.value = 2;
   }).catch(error => {
     console.error('发生了与 fetch 操作相关的问题：', error);
+  }).finally(() => {
+    subLoading.value = false;
   });
 
-  isWaitingResponse = true; // 开始等待后端响应
 };
-
-// 监听 isWaitingResponse 变化，当收到后端响应时进入第三步
-watchEffect(() => {
-  if (isWaitingResponse) {
-    // activeStep.value = 2;
-  }
-});
 </script>
