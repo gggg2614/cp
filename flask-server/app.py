@@ -1,5 +1,7 @@
 import copy
+import json
 import os
+import re
 import tempfile
 
 from flask import Flask, jsonify, request, send_file
@@ -95,6 +97,30 @@ def upload_file():
         return jsonify({'error': 'No file part in the request'}), 400
     file = request.files['file']
     n_searches = int(request.form['n_searches'])
+    population_size = request.form['population_size']
+    population_size_min, population_size_max = map(int, population_size.split(','))
+
+    generations = request.form['generations']
+    generations_size_min, generations_size_max = map(int, generations.split(','))
+
+    maxSamples = int(request.form['maxSamples'])
+
+    pCrossover = request.form['pCrossover']
+    pCrossover_size_min, pCrossover_size_max = map(float, pCrossover.split(','))
+
+    pSubtreeMutation = request.form['pSubtreeMutation']
+    pSubtreeMutation_size_min, pSubtreeMutation_size_max = map(float, pSubtreeMutation.split(','))
+
+    pHoistMutation = request.form['pHoistMutation']
+    pHoistMutation_size_min, pHoistMutation_size_max = map(float, pHoistMutation.split(','))
+
+    pPointMutation = request.form['pPointMutation']
+    pPointMutation_size_min, pPointMutation_size_max = map(float, pPointMutation.split(','))
+
+    parsimonyCoefficient = request.form['parsimonyCoefficient']
+    parsimonyCoefficient_size_min, parsimonyCoefficient_size_max = map(float, parsimonyCoefficient.split(','))
+
+    functionSet = request.form['functionSet']
     if file.filename == '':
         return jsonify({'error': 'No file selected for uploading'}), 400
     if file:
@@ -114,13 +140,14 @@ def upload_file():
             uni_X = X_scaler.fit_transform(X)
             uni_y = y_scaler.fit_transform(y).ravel()
 
-            function_set = ['add', 'sub', 'mul', 'div', 'sqrt', 'log', 'abs', 'neg', 'inv']
+            function_set = request.form['functionSet'].split(',')
+            print(function_set)
 
-            param_range = {
-                'population_size': (1000, 10000),
-                'generations': (10, 50),
-                'parsimony_coefficient': (0.00000000001, 0.0001),
-            }
+            # param_range = {
+            #     'population_size': (1000, 10000),
+            #     'generations': (10, 50),
+            #     'parsimony_coefficient': (0.00000000001, 0.0001),
+            # }
 
             best_score = -np.inf
             best_params = None
@@ -128,24 +155,39 @@ def upload_file():
             for _ in tqdm(range(n_searches), desc="Searching"):
                 random_state = randint(1, 1000).rvs()
 
+                print(population_size_min, population_size_max, 'adsasdasdasdasdasdasdad')
                 params = {
-                    'population_size': randint(*param_range['population_size']).rvs(random_state=random_state),
-                    'generations': randint(*param_range['generations']).rvs(random_state=random_state),
-                    'parsimony_coefficient': uniform(*param_range['parsimony_coefficient']).rvs(
+                    # 'population_size': randint(*param_range['population_size']).rvs(random_state=random_state),
+                    # 'generations': randint(*param_range['generations']).rvs(random_state=random_state),
+                    # 'parsimony_coefficient': uniform(*param_range['parsimony_coefficient']).rvs(
+                    #     random_state=random_state),
+                    'population_size': int(
+                        uniform(population_size_min, population_size_max).rvs(random_state=random_state)),
+                    'generations': int(
+                        uniform(generations_size_min, generations_size_max).rvs(random_state=random_state)),
+                    'parsimony_coefficient': uniform(parsimonyCoefficient_size_min, parsimonyCoefficient_size_max).rvs(
                         random_state=random_state),
-                    'max_samples': uniform(0.8, 0.2).rvs(random_state=random_state),
+                    'max_samples': maxSamples,
                     'function_set': function_set
                 }
-
                 initial_probabilities = {
-                    'p_crossover': uniform(0.1, 0.3).rvs(random_state=random_state),
-                    'p_subtree_mutation': uniform(0.1, 0.3).rvs(random_state=random_state),
-                    'p_hoist_mutation': uniform(0.05, 0.2).rvs(random_state=random_state),
-                    'p_point_mutation': uniform(0.05, 0.2).rvs(random_state=random_state),
+                    'p_crossover': uniform(pCrossover_size_min, pCrossover_size_max).rvs(random_state=random_state),
+                    # 调整为在0.3到0.5之间
+                    'p_subtree_mutation': uniform(pSubtreeMutation_size_min, pSubtreeMutation_size_max).rvs(
+                        random_state=random_state),  # 调整为在0.1到0.25之间
+                    'p_hoist_mutation': uniform(pHoistMutation_size_min, pHoistMutation_size_max).rvs(
+                        random_state=random_state),  # 调整为在0.05到0.15之间
+                    'p_point_mutation': uniform(pPointMutation_size_min, pPointMutation_size_max).rvs(
+                        random_state=random_state + 1),  # 调整为在0.05到0.15之间
                 }
 
+                # 确保总和小于等于1
                 total_probability = sum(initial_probabilities.values())
-                normalized_probabilities = {k: v / total_probability for k, v in initial_probabilities.items()}
+                if total_probability > 1:
+                    normalized_probabilities = {k: v / total_probability for k, v in initial_probabilities.items()}
+                else:
+                    normalized_probabilities = initial_probabilities
+
                 params.update(normalized_probabilities)
 
                 model = SymbolicRegressor(random_state=random_state, **params)
@@ -227,7 +269,7 @@ def generate_features():
     print(uploaded_data, 'dadadad')
 
     gp_features = gp.transform(X)
-
+    print(gp_features)
     # 将新特征存储到 DataFrame 中
     # dataframe = pd.DataFrame(gp_features, columns=[f'gpf{i}' for i in range(gp_features.shape[1])])
     dataframe = pd.DataFrame({
@@ -248,6 +290,99 @@ def generate_features():
 
     # 返回生成的 CSV 文件供前端下载
     return send_file(csv_filename, as_attachment=True)
+
+
+@app.route('/get_gp_features', methods=['POST'])
+def get_gp_features():
+    global uploaded_data
+
+    # 获取前端传输的 best_params
+    best_params_get = request.form['best_params']
+    best_params = json.loads(best_params_get)
+    file = request.files['file']
+
+    # 使用前端传输的 best_params 创建 SymbolicTransformer
+    gp = SymbolicTransformer(
+        generations=best_params['generations'],
+        population_size=best_params['population_size'],
+        hall_of_fame=20,
+        n_components=20,
+        function_set=best_params['function_set'],
+        parsimony_coefficient=best_params['parsimony_coefficient'],
+        max_samples=best_params['max_samples'],
+        p_crossover=best_params['p_crossover'],
+        p_subtree_mutation=best_params['p_subtree_mutation'],
+        p_hoist_mutation=best_params['p_hoist_mutation'],
+        p_point_mutation=best_params['p_point_mutation'],
+        verbose=1,
+        random_state=best_params['random_state']
+    )
+    data = pd.read_excel(file)  # 读取为DataFrame
+    feature_names = data.columns[:-1].tolist()  # 获取特征名
+    X = data.iloc[:, :-1].values  # 提取特征矩阵
+    y = data.iloc[:, -1].values.reshape(-1, 1)  # 提取目标变量并进行形状调整
+
+    X_scaler = StandardScaler()
+    y_scaler = StandardScaler()
+    uni_X = X_scaler.fit_transform(X)
+    uni_y = y_scaler.fit_transform(y).ravel()
+    gp.fit(uni_X, uni_y)
+
+    # 使用 gp.fit_transform 获得新特征
+    gp_features = gp.transform(uni_X)
+
+    # 将新特征存储到 DataFrame 中
+    gp_df = pd.DataFrame(gp_features, columns=[f'gpf{i}' for i in range(gp_features.shape[1])])
+
+    # 将 DataFrame 存储为 CSV 文件
+    csv_filename = f"gp_features.csv"
+    gp_df.to_csv(csv_filename, index=False)
+
+    # 保存替换前的公式
+    filename0 = 'symbolic_transformer_formulas.txt'
+    with open(filename0, 'w') as file:
+        for formula in gp._programs[-1]:
+            file.write(str(formula) + '\n')
+    print(f'特征名替换前的公式已保存到文件：{filename0}')
+
+    # 替换特征名的函数
+    def replace_feature_names(formula, feature_names):
+        def repl(match):
+            index = int(match.group(1))  # 从X1对应的是索引0开始
+            return feature_names[index] if index < len(feature_names) else match.group(0)
+
+        return re.sub(r'X(\d+)', repl, str(formula))
+
+    # 使用特征名替换
+    formulas_replaced = [replace_feature_names(formula, feature_names) for formula in gp._programs[-1]]
+
+    # 保存替换后的公式
+    filename1 = 'symbolic_transformer_formulas_with_feature_names.txt'
+    with open(filename1, 'w') as file:
+        for formula in formulas_replaced:
+            file.write(formula + '\n')
+
+    print(f'特征名替换后的公式已保存到文件：{filename1}')
+
+    return jsonify({'csv_filename': csv_filename, 'formula_txt': filename0, 'formula_with_names_txt': filename1})
+
+
+@app.route('/download_txt', methods=['GET'])
+def download_txt():
+    model_path = 'symbolic_transformer_formulas.txt'
+    if os.path.exists(model_path):
+        return send_file(model_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'Model file not found'}), 404
+
+
+@app.route('/download_txt_names', methods=['GET'])
+def download_txt_names():
+    model_path = 'symbolic_transformer_formulas_with_feature_names.txt'
+    if os.path.exists(model_path):
+        return send_file(model_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'Model file not found'}), 404
 
 
 @app.route('/feature_selection', methods=['POST'])
@@ -531,6 +666,7 @@ def download_model():
     else:
         return jsonify({'error': 'Model file not found'}), 404
 
+
 # Endpoint to return the results CSV file
 @app.route('/download_results', methods=['GET'])
 def download_results():
@@ -539,6 +675,7 @@ def download_results():
         return send_file(temp_csv_path, as_attachment=True)
     else:
         return jsonify({'error': 'Results file not found'}), 404
+
 
 if __name__ == '__main__':
     app.run(debug=True)

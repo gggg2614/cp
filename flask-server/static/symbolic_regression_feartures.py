@@ -24,39 +24,37 @@ uni_y = y_scaler.fit_transform(y).ravel()
 function_set = ['add', 'sub', 'mul', 'div', 'sqrt', 'log', 'abs', 'neg', 'inv']
 
 # 定义搜索参数的范围
-param_range = {
-     'population_size': (1000, 10000),
-     'generations': (10, 50),
-     'parsimony_coefficient': (0.00000000001, 0.0001),
-}
+param_range ={
+            'population_size': (20, 20),
+            'generations': (50, 200),
+            'parsimony_coefficient': (0.0001, 0.01),
+            }
 
 # 搜索次数
-n_searches = 2 # 需要在页面上输入
+n_searches = 1  # 需要在页面上输入
 
 best_score = -np.inf
 best_params = None
 
 for _ in tqdm(range(n_searches), desc="Searching"):
-    
-    random_state = randint(1,1000).rvs()
-    
-    
+
+    random_state = randint(1, 1000).rvs()
+
     params = {
         'population_size': randint(*param_range['population_size']).rvs(random_state=random_state),
         'generations': randint(*param_range['generations']).rvs(random_state=random_state),
         'parsimony_coefficient': uniform(*param_range['parsimony_coefficient']).rvs(random_state=random_state),
-        'max_samples' : uniform(0.8, 0.2).rvs(random_state=random_state),
+        'max_samples': uniform(0.95, 0.1).rvs(random_state=random_state),
         'function_set': function_set
     }
-    
+
     # 初始分配概率
     initial_probabilities = {
-        'p_crossover': uniform(0.1, 0.3).rvs(random_state=random_state),
+        'p_crossover': uniform(0.6, 0.9).rvs(random_state=random_state),
         'p_subtree_mutation': uniform(0.1, 0.3).rvs(random_state=random_state),
-        'p_hoist_mutation': uniform(0.05, 0.2).rvs(random_state=random_state),
-        'p_point_mutation': uniform(0.05, 0.2).rvs(random_state=random_state),
+        'p_hoist_mutation': uniform(0.05, 0.15).rvs(random_state=random_state),
+        'p_point_mutation': uniform(0.03, 0.13).rvs(random_state=random_state),
     }
-
     # 归一化概率值
     total_probability = sum(initial_probabilities.values())
     normalized_probabilities = {k: v / total_probability for k, v in initial_probabilities.items()}
