@@ -50,9 +50,9 @@ const getBreadcrumb = (): void => {
   if (!isDashboard(matched[0])) {
     matched = [
       {
-        path: "/welcome",
-        parentPath: "/",
-        meta: { title: "首页" }
+        path: "/feature_set_choose",
+        parentPath: "/CGN",
+        meta: { title: "特征子集选择" }
       } as unknown as RouteLocationMatched
     ].concat(matched);
   }

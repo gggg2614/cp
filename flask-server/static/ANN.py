@@ -1,3 +1,4 @@
+from joblib import dump
 from scipy.io import loadmat
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,7 +17,6 @@ import copy
 import numpy as np
 from IPython.display import clear_output
 import os
-
 
 #  = torch.("cuda")
 
@@ -156,7 +156,8 @@ y = y.reshape((-1, 1))
 
 uni_X = X_scaler.fit_transform(X)
 uni_y = y_scaler.fit_transform(y)
-
+dump(X_scaler, 'X_scaler.joblib')
+dump(y_scaler, 'y_scaler.joblib')
 best_loss = float('inf')
 best_model_state = None
 best_cycle = -1

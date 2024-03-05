@@ -20,7 +20,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from itertools import combinations
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, dump, load
 from torch import nn, optim, from_numpy
 import torch
 import torch.utils.data as Data
@@ -44,7 +44,7 @@ if not os.path.exists(TEMP_FOLDER):
     os.makedirs(TEMP_FOLDER)
 
 # 允许上传的文件类型
-ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv'}
+ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv', 'pth'}
 
 uploaded_data = None
 
@@ -77,15 +77,21 @@ def upload():
     # 读取文件内容
     if filename.endswith('.csv'):
         data = pd.read_csv(temp_filepath).values
+        uploaded_data = {
+            'X': data[:, :-1],
+            'y': data[:, -1].reshape((-1, 1))
+        }
     elif filename.endswith('.xlsx'):
         data = pd.read_excel(temp_filepath, engine='openpyxl').values
+        uploaded_data = {
+            'X': data[:, :-1],
+            'y': data[:, -1].reshape((-1, 1))
+        }
+    elif filename.endswith('.pth'):
+        pass
     else:
         return jsonify({'error': 'Unsupported file format'}), 400
 
-    uploaded_data = {
-        'X': data[:, :-1],
-        'y': data[:, -1].reshape((-1, 1))
-    }
     # 返回临时文件路径
     return jsonify({'message': 'File uploaded successfully', 'temp_file_path': temp_filepath})
 
@@ -606,6 +612,9 @@ def train_model():
         uni_X = np.concatenate((X1, X2), axis=1)
         uni_X = X_scaler.fit_transform(uni_X)  # Standardize the combined features
         uni_y = y_scaler.fit_transform(y)  # Standardize the target variable
+        print(uni_X.shape)
+        dump(X_scaler, 'X_scaler.joblib')
+        dump(y_scaler, 'y_scaler.joblib')
         model = ANN(uni_X.shape[1]).to()
         X_train, X_test, y_train, y_test = data_division(uni_X, uni_y)
         train_dataloader, test_dataloader = make_loader(X_train, X_test, y_train, y_test)
@@ -675,6 +684,66 @@ def download_results():
         return send_file(temp_csv_path, as_attachment=True)
     else:
         return jsonify({'error': 'Results file not found'}), 404
+
+
+@app.route('/download_joblibX', methods=['GET'])
+def download_joblib_x():
+    temp_csv_path = 'X_scaler.joblib'
+    if os.path.exists(temp_csv_path):
+        return send_file(temp_csv_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'Results file not found'}), 404
+
+
+@app.route('/download_joblibY', methods=['GET'])
+def download_joblib_y():
+    temp_csv_path = 'y_scaler.joblib'
+    if os.path.exists(temp_csv_path):
+        return send_file(temp_csv_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'Results file not found'}), 404
+
+
+@app.route('/download_predict_file', methods=['GET'])
+def download_predict_file():
+    temp_csv_path = 'predicted_output.xlsx'
+    if os.path.exists(temp_csv_path):
+        return send_file(temp_csv_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'Results file not found'}), 404
+
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    X_scaler = load('X_scaler.joblib')
+    y_scaler = load('y_scaler.joblib')
+    # 获取上传的文件
+    model_file = request.files['model']
+    data_pre_file = request.files['data_pre']
+
+    # 读取预测数据
+    data_pre = pd.read_excel(data_pre_file)
+    data_pre = data_pre.values
+    print(data_pre.shape)
+    # 数据预处理
+    X_pre_scaled = X_scaler.transform(data_pre)
+    input_tensor = torch.from_numpy(X_pre_scaled).float()
+
+    # 加载模型并进行推理
+    model = ANN(data_pre.shape[1])
+    model.load_state_dict(torch.load(model_file))
+    model.eval()
+    with torch.no_grad():
+        prediction = model(input_tensor)
+
+    # 将预测结果反向转换并保存为Excel文件
+    predicted_output = prediction.cpu().numpy()
+    predicted_output_scaled_back = y_scaler.inverse_transform(predicted_output)
+    xx = pd.DataFrame(predicted_output_scaled_back)
+    file_path = 'predicted_output.xlsx'
+    xx.to_excel(file_path, index=True)
+
+    return jsonify({'file_path': file_path})
 
 
 if __name__ == '__main__':

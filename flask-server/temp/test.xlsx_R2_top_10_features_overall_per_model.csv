@@ -1,0 +1,71 @@
+Model,Feature Set,MSE,R2
+Linear Regression,"-lg(O wt%), tem/℃",0.1771278074697813,0.6358238303157213
+Linear Regression,"-lg(O wt%), tem/℃, speed/m/s",0.180736284137165,0.6284047738169438
+Linear Regression,"-lg(O wt%), tem/℃, time/h",0.23509181036079754,0.5166493830397336
+Linear Regression,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.2473383862249627,0.49147032643835564
+Linear Regression,-lg(O wt%),0.3207834176945351,0.34046676226058914
+Linear Regression,"-lg(O wt%), speed/m/s",0.32284703302224715,0.33622395286502804
+Linear Regression,"-lg(O wt%), time/h",0.33941232462806536,0.3021655826244366
+Linear Regression,"-lg(O wt%), speed/m/s, time/h",0.35257860385393386,0.27509560865499927
+Linear Regression,tem/℃,0.402710319044135,0.17202440668810715
+Linear Regression,"tem/℃, time/h",0.41380976023631305,0.14920386802314956
+Ridge Regression,"-lg(O wt%), tem/℃",0.17804880303048795,0.6339302561763158
+Ridge Regression,"-lg(O wt%), tem/℃, speed/m/s",0.18357819451208002,0.6225617836636381
+Ridge Regression,"-lg(O wt%), tem/℃, time/h",0.218151301794648,0.5514792023112027
+Ridge Regression,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.23080610663724013,0.5254608237092799
+Ridge Regression,-lg(O wt%),0.32059925608779805,0.3408453999770632
+Ridge Regression,"-lg(O wt%), speed/m/s",0.32413894585508185,0.33356776988761505
+Ridge Regression,"-lg(O wt%), time/h",0.3367189965772038,0.3077030863471839
+Ridge Regression,"-lg(O wt%), speed/m/s, time/h",0.35007843550726986,0.2802359745018995
+Ridge Regression,tem/℃,0.4021919999735602,0.17309007478671123
+Ridge Regression,"tem/℃, time/h",0.40996068907403127,0.15711758870171177
+Polynomial Regression,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.1754857101714836,0.639199995317058
+Polynomial Regression,"-lg(O wt%), time/h",0.21256224480075814,0.5629703475879215
+Polynomial Regression,"-lg(O wt%), tem/℃, speed/m/s",0.25062186564807903,0.48471946683799816
+Polynomial Regression,-lg(O wt%),0.31341761510640914,0.35561091049745985
+Polynomial Regression,"-lg(O wt%), tem/℃",0.41298472020397914,0.15090015683913804
+Polynomial Regression,tem/℃,0.4355459703813087,0.10451404846781209
+Polynomial Regression,"tem/℃, speed/m/s",0.438079928429113,0.09930421072876916
+Polynomial Regression,time/h,0.44694150138400235,0.08108474681630595
+Polynomial Regression,"-lg(O wt%), speed/m/s, time/h",0.48737673683532984,-0.0020504163028933764
+Polynomial Regression,"tem/℃, time/h",0.5319453314136747,-0.0936837983991643
+Random Forest,"-lg(O wt%), tem/℃, time/h",0.04215064872201362,0.9133379336617754
+Random Forest,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.042353190375910066,0.9129215064233244
+Random Forest,"-lg(O wt%), time/h",0.0646686720113545,0.8670407001132114
+Random Forest,"-lg(O wt%), speed/m/s, time/h",0.07464489829067339,0.8465295001711819
+Random Forest,"-lg(O wt%), tem/℃",0.2048068933049979,0.5789154114524029
+Random Forest,"-lg(O wt%), tem/℃, speed/m/s",0.20781646320968825,0.5727277119830567
+Random Forest,-lg(O wt%),0.34157930683380305,0.29771025011209706
+Random Forest,"-lg(O wt%), speed/m/s",0.37188379054456844,0.2354039925024387
+Random Forest,"tem/℃, speed/m/s",0.4151985766509689,0.14634845051694967
+Random Forest,tem/℃,0.43731945131407085,0.10086775767740863
+SVR,"-lg(O wt%), tem/℃, speed/m/s",0.1442153741952928,0.7034920528049399
+SVR,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.1646999265650605,0.6613756515109662
+SVR,"-lg(O wt%), tem/℃",0.17343458551421306,0.6434171237956408
+SVR,"-lg(O wt%), tem/℃, time/h",0.17475005165915514,0.6407125150227011
+SVR,"tem/℃, speed/m/s",0.1938699665895647,0.6014018190709447
+SVR,tem/℃,0.22563108586807956,0.5361007072412376
+SVR,"-lg(O wt%), speed/m/s",0.34355476335121476,0.29364869592608034
+SVR,-lg(O wt%),0.3607582290674165,0.2582782346793898
+SVR,"tem/℃, speed/m/s, time/h",0.37931113812563644,0.22013330727449332
+SVR,"-lg(O wt%), time/h",0.39510512803839076,0.18766073940035943
+Decision Tree,"-lg(O wt%), time/h",0.0793506537867529,0.8368544297431502
+Decision Tree,"-lg(O wt%), speed/m/s, time/h",0.11882301628377812,0.7556989410149988
+Decision Tree,"-lg(O wt%), tem/℃, time/h",0.13244128960796028,0.7276996636132258
+Decision Tree,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.13244128960796028,0.7276996636132258
+Decision Tree,"-lg(O wt%), tem/℃",0.2206157529593892,0.546412271272142
+Decision Tree,"-lg(O wt%), tem/℃, speed/m/s",0.2240793967162326,0.5392909923801572
+Decision Tree,-lg(O wt%),0.3581264069484967,0.2636892817207873
+Decision Tree,"-lg(O wt%), speed/m/s",0.3892297795355865,0.19974050227822682
+Decision Tree,tem/℃,0.4380799284291114,0.09930421072877238
+Decision Tree,"tem/℃, speed/m/s",0.43807992842911153,0.09930421072877205
+Gradient Boosting,"-lg(O wt%), tem/℃, speed/m/s, time/h",0.0820579317315238,0.8312882449284615
+Gradient Boosting,"-lg(O wt%), tem/℃, time/h",0.08498944306846094,0.8252610344902929
+Gradient Boosting,"-lg(O wt%), time/h",0.08588535294205878,0.8234190367215074
+Gradient Boosting,"-lg(O wt%), speed/m/s, time/h",0.08710268121334458,0.8209162001911061
+Gradient Boosting,"-lg(O wt%), tem/℃",0.2221893992297311,0.5431768421243566
+Gradient Boosting,"-lg(O wt%), tem/℃, speed/m/s",0.2228347000845464,0.5418500984754762
+Gradient Boosting,-lg(O wt%),0.35811822459033854,0.2637061047137187
+Gradient Boosting,"-lg(O wt%), speed/m/s",0.38921903906449407,0.19976258477153452
+Gradient Boosting,tem/℃,0.43805847319977037,0.09934832284957773
+Gradient Boosting,"tem/℃, speed/m/s",0.43805847319977037,0.09934832284957773

@@ -1,6 +1,6 @@
 export default {
-  path: "/student",
-  redirect: "/student/List",
+  path: "/CGN",
+  redirect: "/CGN/List",
   meta: {
     icon: "twemoji:man-scientist-dark-skin-tone",
     title: "实验",
@@ -9,28 +9,28 @@ export default {
   },
   children: [
     {
-      path: "/student/add",
-      name: "studentAdd",
+      path: "/CGN/feature_set_choose",
+      name: "feature_set_choose",
       showParent: true,
-      component: () => import("@/views/student/studentAdd.vue"),
+      component: () => import("@/views/CGN/feature_set_choose.vue"),
+      meta: {
+        title: "特征子集选择"
+      }
+    },
+    {
+      path: "/CGN/symbolic_regression",
+      name: "symbolic_regression",
+      showParent: true,
+      component: () => import("@/views/CGN/symbolic_regression.vue"),
       meta: {
         title: "符号回归特征"
       }
     },
     {
-      path: "/student/list",
-      name: "studentList",
+      path: "/CGN/ANN_model_train",
+      name: "ANN_model_train",
       showParent: true,
-      component: () => import("@/views/student/studentList.vue"),
-      meta: {
-        title: "特征选择"
-      }
-    },
-    {
-      path: "/student/t",
-      name: "studentt",
-      showParent: true,
-      component: () => import("@/views/student/studentt.vue"),
+      component: () => import("@/views/CGN/ANN_model_train.vue"),
       meta: {
         title: "训练模型"
       }
