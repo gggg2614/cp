@@ -4,7 +4,7 @@ import os
 import re
 import tempfile
 
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, render_template, send_from_directory
 from flask_cors import CORS
 import numpy as np
 import pandas as pd
@@ -30,7 +30,6 @@ from gplearn.genetic import SymbolicTransformer
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.X = None
 CORS(app, supports_credentials=True)
 
 # 设置文件上传目录
@@ -213,33 +212,6 @@ def upload_file():
             return jsonify(response)
         except Exception as e:
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-    # return jsonify({
-    #     "best_params": {
-    #         "function_set": [
-    #             "add",
-    #             "sub",
-    #             "mul",
-    #             "div",
-    #             "sqrt",
-    #             "log",
-    #             "abs",
-    #             "neg",
-    #             "inv"
-    #         ],
-    #         "generations": 10,
-    #         "max_samples": 0.9606856080159376,
-    #         "p_crossover": 0.3090626661973152,
-    #         "p_hoist_mutation": 0.19093733380268474,
-    #         "p_point_mutation": 0.19093733380268474,
-    #         "p_subtree_mutation": 0.3090626661973152,
-    #         "parsimony_coefficient": 0.0000803428140079688,
-    #         "population_size": 1481,
-    #         "random_state": 999
-    #     },
-    #     "best_score": -2.238423601204719
-    # }), 200
-
 
 @app.route('/generate_features', methods=['POST'])
 def generate_features():
@@ -744,6 +716,26 @@ def predict():
     xx.to_excel(file_path, index=True)
 
     return jsonify({'file_path': file_path})
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/serverConfig.json', methods=['GET'])
+def config():
+    return send_file('templates/serverConfig.json')
+
+
+@app.route('/assets/<path:filename>', methods=['GET'])
+def assets(filename):
+    return send_from_directory('templates/assets', filename)
+
+
+@app.route('/static/<path:pathf>/<path:filename>', methods=['GET'])
+def staticjs(filename, pathf):
+    return send_from_directory('templates/static', pathf + '/' + filename)
 
 
 if __name__ == '__main__':

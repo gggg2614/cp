@@ -42,7 +42,7 @@
           </el-form-item>
           <el-form-item label="Data File(.xlsx)">
             <el-upload
-              action="http://localhost:5000/upload"
+              action="/upload"
               :on-success="handleDataUpload"
               :before-upload="file => beforeUpload(file, 'xlsx')"
               :limit="1"
@@ -55,7 +55,7 @@
           <el-form-item label="Data2 File(.csv)">
             <el-upload
               :on-success="handleData2Upload"
-              action="http://localhost:5000/upload"
+              action="/upload"
               :before-upload="file => beforeUpload(file, 'csv')"
               :limit="1"
               :on-error="handleError"
@@ -96,7 +96,7 @@
       <el-main>
         <div>
           <el-upload
-            action="http://localhost:5000/upload"
+            action="/upload"
             :on-success="handlePthUpload"
             :auto-upload="true"
             :before-upload="file => beforeUpload(file, 'pth')"
@@ -110,7 +110,7 @@
           </el-upload>
 
           <el-upload
-            action="http://localhost:5000/upload"
+            action="/upload"
             :on-success="handlePreUpload"
             :limit="1"
             :auto-upload="true"
@@ -171,7 +171,7 @@ const predict = async () => {
   formData.append("data_pre", dataFile.value[0]); // 使用 'file' 作为数据文件的键
 
   try {
-    const response = await fetch("http://localhost:5000/predict", {
+    const response = await fetch("/predict", {
       method: "POST",
       body: formData
     });
@@ -231,7 +231,7 @@ const trainModel = async () => {
   formData1.append("data", data.value[0]);
   formData1.append("data2", data2.value[0]);
   try {
-    const response = await fetch("http://localhost:5000/train", {
+    const response = await fetch("/train", {
       method: "POST",
       body: formData1
     });
@@ -260,7 +260,7 @@ const beforeUpload = (file: File, expectedExtension: string) => {
 
 const downloadCsv = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_results", {
+    const response = await fetch("/download_results", {
       method: "GET"
     });
     const data = await response.blob();
@@ -279,7 +279,7 @@ const downloadCsv = async () => {
 
 const downloadPth = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_model", {
+    const response = await fetch("/download_model", {
       method: "GET"
     });
     const data = await response.blob();
@@ -298,7 +298,7 @@ const downloadPth = async () => {
 
 const downloadjoblibX = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_joblibX", {
+    const response = await fetch("/download_joblibX", {
       method: "GET"
     });
     const data = await response.blob();
@@ -316,7 +316,7 @@ const downloadjoblibX = async () => {
 };
 const downloadjoblibY = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_joblibY", {
+    const response = await fetch("/download_joblibY", {
       method: "GET"
     });
     const data = await response.blob();
@@ -335,7 +335,7 @@ const downloadjoblibY = async () => {
 
 const downloadPreFile = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_predict_file", {
+    const response = await fetch("/download_predict_file", {
       method: "GET"
     });
     const data = await response.blob();

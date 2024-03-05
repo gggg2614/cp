@@ -1,10 +1,10 @@
-scipy
+flask
+flask-cors
 numpy
-matplotlib
-torch
-scikit-learn
 pandas
-ipython
-matplotlib
 gplearn
+scikit-learn
+scipy
+torch
 tqdm
+joblib

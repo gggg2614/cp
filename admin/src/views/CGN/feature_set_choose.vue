@@ -4,7 +4,7 @@
       class="upload-demo"
       :on-error="handleError"
       drag
-      action="http://localhost:5000/upload"
+      action="/upload"
       :show-file-list="false"
       :on-success="uploadSuccess"
       :before-upload="beforeUpload"
@@ -62,7 +62,7 @@ const submit = async () => {
   const formData = new FormData();
   formData.append("file", files.value[0]);
   try {
-    const response = await fetch("http://localhost:5000/feature_selection", {
+    const response = await fetch("/feature_selection", {
       method: "POST",
       body: formData
     });

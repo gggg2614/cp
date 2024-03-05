@@ -297,7 +297,7 @@ const files = ref([]);
 const form = ref({});
 const subLoading = ref(false);
 const csvLoading = ref(false);
-const importURL = "http://localhost:5000/upload";
+const importURL = "/upload";
 const populationSizeMin = ref(20);
 const populationSizeMax = ref(0);
 const generationsMin = ref(1);
@@ -337,7 +337,7 @@ const handleBackendResponse = data => {
 
 const downloadTxt = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_txt", {
+    const response = await fetch("/download_txt", {
       method: "GET"
     });
     const data = await response.blob();
@@ -356,7 +356,7 @@ const downloadTxt = async () => {
 
 const downloadtxtNames = async () => {
   try {
-    const response = await fetch("http://localhost:5000/download_txt_names", {
+    const response = await fetch("/download_txt_names", {
       method: "GET"
     });
     const data = await response.blob();
@@ -380,7 +380,7 @@ const forthStep = async () => {
   const formData = new FormData();
   formData.append("file", files.value[0]);
   formData.append("best_params", JSON.stringify(form.value));
-  fetch("http://localhost:5000/get_gp_features", {
+  fetch("/get_gp_features", {
     method: "POST",
     body: formData // 将前端获取的 form 传给后端
   }).then(response => {
@@ -429,7 +429,7 @@ const uploadSuccess = (res, file, filelist) => {
 };
 
 const downloadCSV = () => {
-  fetch("http://localhost:5000/generate_features", {
+  fetch("/generate_features", {
     method: "POST",
     body: JSON.stringify({ best_params: form.value }), // 将前端获取的 form 传给后端
     headers: {
@@ -499,7 +499,7 @@ const submit = () => {
   );
   formData.append("functionSet", functionSet.value);
   subLoading.value = true;
-  fetch("http://localhost:5000/file1", {
+  fetch("/file1", {
     method: "POST",
     body: formData
   })

@@ -1,0 +1,1 @@
+const e=Vue.defineComponent({name:"Welcome"}),u=Vue.defineComponent({...e,setup(n){return(t,o)=>(Vue.openBlock(),Vue.createElementBlock("h1",null,"您好！管理员！现在是"+Vue.toDisplayString(new Date),1))}});export{u as default};

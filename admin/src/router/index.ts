@@ -12,7 +12,7 @@ import {
 } from "vue-router";
 import {
   ascending,
-  initRouter,
+  addPathMatch,
   isOneOfArray,
   getHistoryMode,
   findRouteByPath,
@@ -24,7 +24,6 @@ import { buildHierarchyTree } from "@/utils/tree";
 import { isUrl, openLink, storageSession } from "@pureadmin/utils";
 
 import remainingRouter from "./modules/remaining";
-import test from "./modules/test";
 
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
@@ -139,24 +138,21 @@ router.beforeEach((to: toRouteType, _from, next) => {
         usePermissionStoreHook().wholeMenus.length === 0 &&
         to.path !== "/login"
       )
-        initRouter().then((router: Router) => {
-          if (!useMultiTagsStoreHook().getMultiTagsCache) {
-            const { path } = to;
-            const route = findRouteByPath(
-              path,
-              router.options.routes[0].children
-            );
-            // query、params模式路由传参数的标签页不在此处处理
-            if (route && route.meta?.title) {
-              useMultiTagsStoreHook().handleTags("push", {
-                path: route.path,
-                name: route.name,
-                meta: route.meta
-              });
-            }
-          }
-          router.push(to.fullPath);
-        });
+        // 使用下面方法替换initRouter
+        usePermissionStoreHook().handleWholeMenus([]);
+      addPathMatch();
+      if (!useMultiTagsStoreHook().getMultiTagsCache) {
+        const { path } = to;
+        const route = findRouteByPath(path, router.options.routes[0].children);
+        // query、params模式路由传参数的标签页不在此处处理
+        if (route && route.meta?.title) {
+          useMultiTagsStoreHook().handleTags("push", {
+            path: route.path,
+            name: route.name,
+            meta: route.meta
+          });
+        }
+      }
       toCorrectRoute();
     }
   } else {
