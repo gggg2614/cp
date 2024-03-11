@@ -1,19 +1,9 @@
 <template>
-  <div>
-    <el-steps
-      :active="activeStep"
-      finish-status="success"
-      align-center
-      style="margin-bottom: 20px"
-    >
-      <el-step title="第一步"></el-step>
-      <el-step title="第二步"></el-step>
-    </el-steps>
-
-    <el-container v-if="activeStep === 0">
+  <div v-loading="vloading" element-loading-text="处理中...">
+    <el-container>
       <el-main>
         <el-form ref="form" :model="formData" label-width="120px">
-          <el-form-item label="Cycles">
+          <el-form-item label="需要训练的轮数">
             <el-input
               @input="handleInput('cycles')"
               v-model.trim="formData.cycles"
@@ -23,7 +13,7 @@
               step="1"
             ></el-input>
           </el-form-item>
-          <el-form-item label="Epoch">
+          <el-form-item label="每轮训练的次数">
             <el-input
               v-model.trim="formData.epoch"
               placeholder="请输入整数"
@@ -31,7 +21,7 @@
               type="number"
             ></el-input>
           </el-form-item>
-          <el-form-item label="FeatureAddNum">
+          <el-form-item label="添加的特征个数">
             <el-input
               v-model.trim="formData.feature_add_num"
               placeholder="请输入0-10的数"
@@ -40,98 +30,59 @@
               max="10"
             ></el-input>
           </el-form-item>
-          <el-form-item label="Data File(.xlsx)">
+          <el-form-item label-width="115" label="原始数据(.xlsx)">
             <el-upload
-              action="/upload"
+              action="http://localhost:5000/upload"
               :on-success="handleDataUpload"
               :before-upload="file => beforeUpload(file, 'xlsx')"
               :limit="1"
               :on-error="handleError"
-            >
+              :on-remove="()=>uploadRemove('data')"
+              :file-list="data"
+              >
               <el-button slot=" trigger" type="primary">Upload</el-button
-              >(最多上传一个文件)
-            </el-upload>
-          </el-form-item>
-          <el-form-item label="Data2 File(.csv)">
+                >(最多上传一个文件)
+              </el-upload>
+            </el-form-item>
+            <el-form-item label-width="280" label="符号回归特征构建中得到的数据文件(.csv)">
             <el-upload
               :on-success="handleData2Upload"
-              action="/upload"
+              action="http://localhost:5000/upload"
               :before-upload="file => beforeUpload(file, 'csv')"
               :limit="1"
+              :on-remove="()=>uploadRemove('data2')"
               :on-error="handleError"
+              :file-list="data2"
             >
               <el-button slot="trigger" type="primary">Upload</el-button
               >(最多上传一个文件)
             </el-upload>
           </el-form-item>
-          <el-form-item>
             <el-button
               type="primary"
               @click="validateAndTrain"
               :loading="trainLoading"
               :disabled="!isFormValid"
-              >Train Model</el-button
+              >训练模型</el-button
             >
-          </el-form-item>
           <el-form-item v-if="trainComplete">
             <el-button type="success" @click="downloadCsv"
-              >Download CSV</el-button
+              >下载各轮次模型表现</el-button
             >
             <el-button type="success" @click="downloadPth"
-              >Download PTH</el-button
+              >下载模型参数文件</el-button
             >
             <el-button type="success" @click="downloadjoblibX"
-              >Download joblibX</el-button
+              >下载输入特征归一化参数</el-button
             >
             <el-button type="success" @click="downloadjoblibY"
-              >Download joblibY</el-button
+              >下载输出特征归一化参数</el-button
             >
-            <el-button type="primary" @click="nextStep">下一步</el-button>
           </el-form-item>
         </el-form>
       </el-main>
     </el-container>
 
-    <el-container v-else-if="activeStep === 1">
-      <el-main>
-        <div>
-          <el-upload
-            action="/upload"
-            :on-success="handlePthUpload"
-            :auto-upload="true"
-            :before-upload="file => beforeUpload(file, 'pth')"
-            :limit="1"
-            :on-error="handleError"
-          >
-            <template #default>
-              模型文件(.pth)：<el-button type="primary">上传模型文件</el-button
-              >(最多上传一个文件)
-            </template>
-          </el-upload>
-
-          <el-upload
-            action="/upload"
-            :on-success="handlePreUpload"
-            :limit="1"
-            :auto-upload="true"
-            :before-upload="file => beforeUpload(file, 'xlsx')"
-            :on-error="handleError"
-          >
-            <template #default>
-              数据文件(.xlsx)：<el-button type="primary">上传数据文件</el-button
-              >(最多上传一个文件)
-            </template>
-          </el-upload>
-          <el-button @click="predict" :loading="loading" type="primary"
-            >预测</el-button
-          >
-          <el-button v-if="fileOK" type="success" @click="downloadPreFile"
-            >下载预测结果</el-button
-          >
-          <el-button type="primary" @click="activeStep--">返回上一步</el-button>
-        </div>
-      </el-main>
-    </el-container>
   </div>
 </template>
 
@@ -141,56 +92,28 @@ import { ElMessage } from "element-plus";
 
 const activeStep = ref(0);
 const formData = ref({
-  cycles: "",
-  epoch: "",
-  feature_add_num: ""
+  cycles: "200",
+  epoch: "3000",
+  feature_add_num: "6"
 });
 const data = ref([]);
 const data2 = ref([]);
 const trainLoading = ref(false);
 const trainComplete = ref(false);
-const modelFile = ref([]);
-const dataFile = ref([]);
 const loading = ref(false);
 const fileOK = ref(false);
+const vloading = ref(false);
 
 const handleInput = (key) => (event) => {
   const input = event.target.value;
   formData.value[key] = input.replace(/\D/g, ''); // 删除所有非数字字符
 };
-const predict = async () => {
-  if (modelFile.value.length === 0 || dataFile.value.length === 0) {
-    ElMessage.error("请上传文件");
-    return;
-  }
-
-  loading.value = true;
-
-  const formData = new FormData();
-  formData.append("model", modelFile.value[0]); // 使用 'file' 作为模型文件的键
-  formData.append("data_pre", dataFile.value[0]); // 使用 'file' 作为数据文件的键
-
-  try {
-    const response = await fetch("/predict", {
-      method: "POST",
-      body: formData
-    });
-    fileOK.value = true;
-    return response
-
-  } catch (error) {
-    ElMessage.error('发生错误')
-  } finally {
-    loading.value = false;
-  }
-};
-
 
 const validateAndTrain = () => {
   const featureAddNum = parseInt(formData.value.feature_add_num);
   if (isNaN(featureAddNum) || featureAddNum < 0 || featureAddNum > 10) {
     console.log(featureAddNum);
-    ElMessage.error("Feature Add Num must be a number between 0 and 10");
+    ElMessage.error("特征个数必须在0-10之间");
     return;
   }
   if (data.value.length === 0 || data2.value.length === 0) {
@@ -200,30 +123,20 @@ const validateAndTrain = () => {
   trainModel();
 };
 
-const nextStep = () => {
-  activeStep.value++;
-};
 
-const handlePthUpload = (response: any, file, filelist) => {
-  modelFile.value.push(file.raw); // 将上传成功的文件添加到 files 中
-  ElMessage.success("pth file uploaded successfully");
-};
-const handlePreUpload = (response: any, file, filelist) => {
-  dataFile.value.push(file.raw); // 将上传成功的文件添加到 files 中
-  ElMessage.success("model file uploaded successfully");
-};
 const handleDataUpload = (response: any, file, filelist) => {
   data.value.push(file.raw); // 将上传成功的文件添加到 files 中
-  ElMessage.success("Data file uploaded successfully");
+  ElMessage.success("原始数据上传成功");
 };
 const handleData2Upload = (response: any, file, filelist) => {
   data2.value.push(file.raw); // 将上传成功的文件添加到 files 中
-  ElMessage.success("Data2 file uploaded successfully");
+  ElMessage.success("数据文件上传成功");
 };
 
 const trainModel = async () => {
   if (!isFormValid) return;
   trainLoading.value = true;
+  vloading.value = true
   const formData1 = new FormData();
   formData1.append("cycles", formData.value.cycles);
   formData1.append("epoch", formData.value.epoch);
@@ -231,22 +144,22 @@ const trainModel = async () => {
   formData1.append("data", data.value[0]);
   formData1.append("data2", data2.value[0]);
   try {
-    const response = await fetch("/train", {
+    const response = await fetch("http://localhost:5000/train", {
       method: "POST",
       body: formData1
     });
     const data = await response;
     if (data.status == 200) {
-      ElMessage.success("Model trained successfully");
+      ElMessage.success("模型训练成功");
       trainComplete.value = true;
     } else {
       ElMessage.error("训练失败，请检查文件是否有误");
     }
   } catch (error) {
-    console.error("Error:", error);
     ElMessage.error("训练失败，请检查文件是否有误");
   } finally {
     trainLoading.value = false;
+    vloading.value = false;
   }
 };
 
@@ -260,14 +173,14 @@ const beforeUpload = (file: File, expectedExtension: string) => {
 
 const downloadCsv = async () => {
   try {
-    const response = await fetch("/download_results", {
+    const response = await fetch("http://localhost:5000/download_results", {
       method: "GET"
     });
     const data = await response.blob();
     const url = window.URL.createObjectURL(data);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "results.csv");
+    link.setAttribute("download", "各轮次模型表现.csv");
     document.body.appendChild(link);
     link.click();
     ElMessage.success("Results CSV downloaded successfully");
@@ -286,10 +199,10 @@ const downloadPth = async () => {
     const url = window.URL.createObjectURL(data);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "best_model.pth");
+    link.setAttribute("download", "模型参数文件.pth");
     document.body.appendChild(link);
     link.click();
-    ElMessage.success("Model PTH downloaded successfully");
+    ElMessage.success("pth文件下载成功");
   } catch (error) {
     console.error("Error:", error);
     ElMessage.error("Failed to download model PTH");
@@ -308,10 +221,10 @@ const downloadjoblibX = async () => {
     link.setAttribute("download", "X_scaler.joblib");
     document.body.appendChild(link);
     link.click();
-    ElMessage.success("Model PTH downloaded successfully");
+    ElMessage.success("joblibx下载成功");
   } catch (error) {
     console.error("Error:", error);
-    ElMessage.error("Failed to download model PTH");
+    ElMessage.error("下载失败");
   }
 };
 const downloadjoblibY = async () => {
@@ -326,31 +239,13 @@ const downloadjoblibY = async () => {
     link.setAttribute("download", "Y_scaler.joblib");
     document.body.appendChild(link);
     link.click();
-    ElMessage.success("Model PTH downloaded successfully");
+    ElMessage.success("jobliby下载成功");
   } catch (error) {
     console.error("Error:", error);
-    ElMessage.error("Failed to download model PTH");
+    ElMessage.error("下载失败");
   }
 };
 
-const downloadPreFile = async () => {
-  try {
-    const response = await fetch("/download_predict_file", {
-      method: "GET"
-    });
-    const data = await response.blob();
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "predicted_output_file.xlsx");
-    document.body.appendChild(link);
-    link.click();
-    ElMessage.success("predicted file downloaded successfully");
-  } catch (error) {
-    console.error("Error:", error);
-    ElMessage.error("Failed to download model file");
-  }
-};
 const isFormValid = computed(() => {
   return (
     formData.value.cycles &&
@@ -362,4 +257,15 @@ const handleError = (error, file, fileList) => {
   ElMessage.error('上传文件发生错误，请检查文件是否正确');
   return;
 };
+const uploadRemove = (fileType:string) => {
+  if (fileType === "data") {
+    data.value = [];
+  } else if (fileType === "data2") {
+    data2.value = [];
+  }
+  else{
+    return;
+  }
+}
+
 </script>

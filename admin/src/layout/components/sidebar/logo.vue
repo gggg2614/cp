@@ -29,7 +29,7 @@ const { title } = useNav();
         to="/"
       >
         <FontIcon icon="team-iconlogo" svg style="width: 35px; height: 35px" />
-        <span class="sidebar-title">实验系统</span>
+        <span class="sidebar-title">数据分析系统</span>
       </router-link>
     </transition>
   </div>

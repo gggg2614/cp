@@ -2,10 +2,10 @@ import type { IconifyIcon } from "@iconify/vue";
 
 export const routerArrays: Array<RouteConfigs> = [
   {
-    path: "/CGN/feature_set_choose",
+    path: "/welcome",
     parentPath: "/",
     meta: {
-      title: "特征子集选择",
+      title: "首页",
       icon: "homeFilled"
     }
   }

@@ -10,12 +10,18 @@ venv
 uploads
 __pycache__
 models
-
+predict
+finance
+train
 yarn.lock
 npm-debug.log*
 .pnpm-error.log*
 .pnpm-debug.log
 tests/**/coverage/
+file1
+result_files
+static
+templates
 
 # Editor directories and files
 .idea

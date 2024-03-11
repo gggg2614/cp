@@ -6,6 +6,7 @@ export default {
     title: "实验",
     // showLink: false,
     rank: 1,
+    
   },
   children: [
     {
@@ -14,7 +15,18 @@ export default {
       showParent: true,
       component: () => import("@/views/CGN/feature_set_choose.vue"),
       meta: {
-        title: "特征子集选择"
+        title: "特征子集选择",
+        keepAlive:true
+      }
+    },
+    {
+      path: "/CGN/finance_symbolic_regression",
+      name: "finance_symbolic_regression",
+      showParent: true,
+      component: () => import("@/views/CGN/finance_symbolic_regression.vue"),
+      meta: {
+        title: "符号回归构建公式",
+        keepAlive:true
       }
     },
     {
@@ -23,7 +35,8 @@ export default {
       showParent: true,
       component: () => import("@/views/CGN/symbolic_regression.vue"),
       meta: {
-        title: "符号回归特征"
+        title: "符号回归构建特征",
+        keepAlive:true
       }
     },
     {
@@ -32,7 +45,18 @@ export default {
       showParent: true,
       component: () => import("@/views/CGN/ANN_model_train.vue"),
       meta: {
-        title: "训练模型"
+        title: "ANN模型训练",
+        keepAlive:true
+      }
+    },
+    {
+      path: "/CGN/ANN_model_predict",
+      name: "ANN_model_predict",
+      showParent: true,
+      component: () => import("@/views/CGN/ANN_model_predict.vue"),
+      meta: {
+        title: "ANN模型预测",
+        keepAlive:true
       }
     },
   ]

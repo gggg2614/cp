@@ -1,1 +1,0 @@
-import{e as t,m as c,u as p,o as u,c as _}from"./index-ecb5597c.js";const m=t({name:"Redirect"}),h=t({...m,setup(i){const{currentRoute:r,replace:a}=c(),{params:o,query:n}=p(r),{path:e}=o,s=Array.isArray(e)?e.join("/"):e;return a({path:"/"+s,query:n}),(f,l)=>(u(),_("div"))}});export{h as default};

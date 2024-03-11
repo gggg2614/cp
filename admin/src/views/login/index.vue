@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
         <div class="login-form">
           <avatar class="avatar" />
           <Motion>
-            <h2 class="outline-none">实验系统</h2>
+            <h2 class="outline-none">数据分析系统</h2>
           </Motion>
 
           <el-form

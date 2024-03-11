@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-loading="vloading" element-loading-text="处理中...">
     <el-steps
       :active="activeStep"
       finish-status="success"
@@ -15,16 +15,26 @@
       <el-form label-width="120px" :model="form">
         <el-form-item label="输入搜索次数" prop="nSearches">
           <el-input
-            v-model.trim="nSearches"
-            placeholder="输入搜索次数"
-            type="number"
-            min="0"
+          v-model.trim="nSearches"
+          placeholder="输入搜索次数"
+          type="number"
+          :controls = false
+          min="0"
           ></el-input>
         </el-form-item>
-        <el-form-item label="符号集" prop="nSearches">
+        <el-form-item label="交叉验证折数" prop="cv">
+          <el-input
+          v-model.trim="cv"
+          placeholder="输入交叉验证折数"
+          type="number"
+          :controls = false
+          min="0"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="符号集" prop="functionSet">
           <el-input
             v-model.trim="functionSet"
-            placeholder="输入搜索次数"
+            placeholder="输入符号集"
           ></el-input>
         </el-form-item>
         <el-form-item label="种群大小" prop="populationSize">
@@ -50,7 +60,29 @@
             对于小数据集来说，相对较小的种群就可以覆盖解空间
           </div>
         </el-form-item>
-
+        <el-form-item label="锦标赛规模" prop="tournamentSize">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-input
+                v-model.trim="tournamentMin"
+                placeholder="最小值"
+                type="number"
+                min="40"
+              ></el-input>
+            </el-col>
+            <el-col :span="12">
+              <el-input
+                v-model.trim="tournamentMax"
+                placeholder="宽度"
+                type="number"
+                min="40"
+              ></el-input>
+            </el-col>
+          </el-row>
+          <div style="margin-top: 10px; font-size: 12px; color: #999">
+            锦标赛”参加选手每轮参与竞选的个体，小值使得适应度较低的个体也有较高的机会被选中，这有助于保持种群的多样性，大值将优先选择较高适应度的个体
+          </div>
+        </el-form-item>
         <el-form-item label="迭代代数" prop="generations">
           <el-row :gutter="20">
             <el-col :span="12">
@@ -79,25 +111,46 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-input
-                v-model.trim="parsimonycoefficientMin"
+                v-model.number="parsimonycoefficientMin"
                 placeholder="最小值"
-                type="number"
-                min="0.000001"
+                type="text"
               ></el-input>
             </el-col>
             <el-col :span="12">
               <el-input
                 v-model.trim="parsimonycoefficientMax"
                 placeholder="宽度"
-                type="number"
+                type="text"
               ></el-input>
             </el-col>
           </el-row>
           <div style="margin-top: 10px; font-size: 12px; color: #999">
-            简约系数用于避免过于复杂的解。考虑到数据规模较小，可以设置一个中等的值，如0.01到01，以鼓励算法寻找更简洁的解。
+            简约系数用于避免过于复杂的解。考虑到数据规模较小，可以设置一个中等的值，如0.01到0.1，以鼓励算法寻找更简洁的解。
           </div>
         </el-form-item>
-
+        <el-form-item label="随机状态" prop="randomstate">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-input
+                  v-model.trim="randomstateMin"
+                  placeholder="最小值"
+                  type="number"
+                  min="40"
+                ></el-input>
+              </el-col>
+              <el-col :span="12">
+                <el-input
+                  v-model.trim="randomstateMax"
+                  placeholder="宽度"
+                  type="number"
+                  min="40"
+                ></el-input>
+              </el-col>
+            </el-row>
+            <div style="margin-top: 10px; font-size: 12px; color: #999">
+              通常用于设置随机数生成器的种子，以确保结果的可重复性。
+            </div>
+          </el-form-item>
         <el-form-item label="最大样本数" prop="maxSamples">
           <el-col :span="5.5">
             <el-input
@@ -227,9 +280,11 @@
       :action="importURL"
       :on-success="uploadSuccess"
       :before-upload="beforeUpload"
+      :on-remove="uploadRemove"
       :auto-upload="true"
       :limit="1"
       :on-error="handleError"
+      :file-list="files"
     >
       <el-button slot="trigger" type="primary">选择文件</el-button>
       <div class="el-upload__tip" slot="tip">支持上传 XLSX/XLS 文件</div>
@@ -248,29 +303,39 @@
         </el-row>
       </el-form>
       <el-button @click="prevStep" type="primary">返回上一步</el-button>
-      <el-button @click="downloadCSV" type="primary" :loading="csvLoading"
-        >下载结果</el-button
-      >
-      <el-button type="primary" size="default" @click="downloadTxt"
-        >下载转换前的特征</el-button
-      >
-      <el-button type="primary" size="default" @click="downloadtxtNames"
-        >下载转换后的特征</el-button
+      <el-button @click="stepThird" type="primary" :loading="csvLoading"
+        >下一步</el-button
       >
     </el-card>
-
+    
     <el-card v-if="activeStep === 3">
-      <h3>生成的特征：</h3>
-      <div v-if="gpFeatures.length > 0">
-        <ul>
-          <li v-for="(feature, index) in gpFeatures" :key="index">
-            {{ feature }}
-          </li>
-        </ul>
+      <div v-if="gpFeatures">
+        <p>共构建出特征个数为：{{ gpFeatures.featureNum }}</p>
+        <p>数学特征数：{{ gpFeatures.featureMathNum }}</p>
+        <p>特征信息：{{ gpFeatures.featureInfo }}</p>
       </div>
       <div v-else>
         <p>暂无特征数据。</p>
       </div>
+      <el-button @click="prevStep" type="primary">返回上一步</el-button>
+      <el-button type="success" size="default" @click="downloadTxt"
+        >下载转换前的特征</el-button
+      >
+      <el-button type="success" size="default" @click="downloadtxtNames"
+        >下载转换后的特征</el-button
+      >
+      <el-button type="success" size="default" @click="downloadFinalCsv"
+        >下载最终筛选特征值</el-button
+      >
+      <el-button type="success" size="default" @click="downloadTotalCsv"
+        >下载初始构建特征值</el-button
+      >
+      <el-button type="success" size="default" @click="downloadxJob"
+        >下载输入特征归一化参数</el-button
+      >
+      <el-button type="success" size="default" @click="downloadyJob"
+        >下载输出变量归一化参数</el-button
+      >
     </el-card>
 
     <el-button
@@ -288,31 +353,37 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, nextTick } from "vue";
+import { ref, nextTick, watch } from "vue";
 import { ElMessage } from "element-plus";
 
 const activeStep = ref(0);
-const nSearches = ref("1");
+const nSearches = ref("2");
+const cv = ref('3')
 const files = ref([]);
 const form = ref({});
 const subLoading = ref(false);
 const csvLoading = ref(false);
-const importURL = "/upload";
-const populationSizeMin = ref(20);
-const populationSizeMax = ref(0);
-const generationsMin = ref(1);
-const generationsMax = ref(1);
-const maxSamples = ref("1");
-const pCrossoverMin = ref(0.3);
-const pCrossoverMax = ref(0.2);
+const importURL = "http://localhost:5000/upload";
+const populationSizeMin = ref(100);
+const populationSizeMax = ref(200);
+const generationsMin = ref(20);
+const generationsMax = ref(50);
+const maxSamples = ref([1]);
+const pCrossoverMin = ref(0.1);
+const pCrossoverMax = ref(0.3);
 const pSubtreeMutationMin = ref(0.1);
-const pSubtreeMutationMax = ref(0.15);
+const pSubtreeMutationMax = ref(0.3);
 const pHoistMutationMin = ref(0.05);
-const pHoistMutationMax = ref(0.1);
+const pHoistMutationMax = ref(0.2);
 const pPointMutationMin = ref(0.05);
-const pPointMutationMax = ref(0.1);
-const parsimonycoefficientMin = ref(0.000001);
-const parsimonycoefficientMax = ref(0.099999);
+const pPointMutationMax = ref(0.2);
+const parsimonycoefficientMin = ref('0.00000000001');
+const parsimonycoefficientMax = ref(0.0001);
+const tournamentMin = ref(1)
+const tournamentMax = ref(20)
+const randomstateMin = ref(1)
+const randomstateMax = ref(1000)
+const vloading = ref(false);
 const functionSet = ref([
   "add",
   "sub",
@@ -324,7 +395,11 @@ const functionSet = ref([
   "neg",
   "inv"
 ]);
-const gpFeatures = ref("");
+const gpFeatures = ref({
+  featureInfo:'',
+  featureMathNum:'',
+  featureNum:''
+});
 
 const handleBackendResponse = data => {
   const bestParams = data.best_params;
@@ -335,20 +410,126 @@ const handleBackendResponse = data => {
   form.value["best_score"] = data.best_score;
 };
 
-const downloadTxt = async () => {
+const downloadxJob = async() => {
   try {
-    const response = await fetch("/download_txt", {
+    const response = await fetch("http://localhost:5000/download_file1_x_job", {
       method: "GET"
     });
-    const data = await response.blob();
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "symbolic_transformer_formulas.txt");
-    document.body.appendChild(link);
-    link.click();
-    ElMessage.success("txt downloaded successfully");
-  } catch (error) {
+    if(response.ok){
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "输入特征归一化参数.joblib");
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    }else{
+      ElMessage.error('发生错误')
+      return;
+    }
+  } 
+  catch (error) {
+    console.error("Error:", error);
+    ElMessage.error("Failed to download model txt");
+  }
+}
+
+const downloadyJob = async() => {
+  try {
+    const response = await fetch("http://localhost:5000/download_file1_y_job", {
+      method: "GET"
+    });
+    if(response.ok){
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "输出变量归一化参数.joblib");
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    }else{
+      ElMessage.error('发生错误')
+      return;
+    }
+  } 
+  catch (error) {
+    console.error("Error:", error);
+    ElMessage.error("Failed to download model txt");
+  }
+}
+
+const downloadTotalCsv = async() => {
+  try {
+    const response = await fetch("http://localhost:5000/download_total_csv", {
+      method: "GET"
+    });
+    if(response.ok){
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "初始构建特征值.csv");
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    }else{
+      ElMessage.error('发生错误')
+      return;
+    }
+  } 
+  catch (error) {
+    console.error("Error:", error);
+    ElMessage.error("Failed to download model txt");
+  }
+}
+
+const downloadFinalCsv = async() => {
+  try {
+    const response = await fetch("http://localhost:5000/download_final_csv", {
+      method: "GET"
+    });
+    if(response.ok){
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "最终筛选特征值.csv");
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    }else{
+      ElMessage.error('发生错误')
+      return;
+    }
+  } 
+  catch (error) {
+    console.error("Error:", error);
+    ElMessage.error("Failed to download model txt");
+  }
+}
+
+const downloadTxt = async () => {
+  try {
+    const response = await fetch("http://localhost:5000/download_txt", {
+      method: "GET"
+    });
+    if(response.ok){
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "原始公式.txt");
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    }else{
+      ElMessage.error('发生错误')
+      return;
+    }
+  } 
+  catch (error) {
     console.error("Error:", error);
     ElMessage.error("Failed to download model txt");
   }
@@ -356,20 +537,24 @@ const downloadTxt = async () => {
 
 const downloadtxtNames = async () => {
   try {
-    const response = await fetch("/download_txt_names", {
+    const response = await fetch("http://localhost:5000/download_txt_names", {
       method: "GET"
     });
-    const data = await response.blob();
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      "symbolic_transformer_formulas_with_feature_names.txt"
-    );
-    document.body.appendChild(link);
-    link.click();
-    ElMessage.success("txtNames downloaded successfully");
+    if (response.ok) {
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        "特征公式.txt"
+      );
+      document.body.appendChild(link);
+      link.click();
+      ElMessage.success("下载成功");
+    } else {
+      ElMessage.error("Failed to download model txtNames: " + response.statusText);
+    }
   } catch (error) {
     console.error("Error:", error);
     ElMessage.error("Failed to download model txtNames");
@@ -379,12 +564,13 @@ const downloadtxtNames = async () => {
 const forthStep = async () => {
   const formData = new FormData();
   formData.append("file", files.value[0]);
-  formData.append("best_params", JSON.stringify(form.value));
-  fetch("/get_gp_features", {
+  formData.append("best_params", JSON.stringify(form.value)); 
+  fetch("http://localhost:5000/get_gp_features", {
     method: "POST",
     body: formData // 将前端获取的 form 传给后端
   }).then(response => {
     if (!response.ok) {
+      ElMessage.error('发生错误')
       throw new Error("网络响应不正常");
     }
     return response.json();
@@ -410,8 +596,12 @@ const nextStep = () => {
   })();
 };
 
+const uploadRemove = ()=>{
+  files.value=[]
+}
+
 const prevStep = () => {
-  files.value[0] == null;
+  // files.value[0] == null;
   activeStep.value--;
 };
 
@@ -428,35 +618,33 @@ const uploadSuccess = (res, file, filelist) => {
   ElMessage({ type: "success", message: "上传成功" });
 };
 
-const downloadCSV = () => {
-  fetch("/generate_features", {
+const stepThird = () => {
+  const formData = new FormData();
+  formData.append("file", files.value[0]);
+  formData.append("best_params", JSON.stringify(form.value)); 
+  vloading.value = true
+  fetch("http://localhost:5000/generate_features", {
     method: "POST",
-    body: JSON.stringify({ best_params: form.value }), // 将前端获取的 form 传给后端
-    headers: {
-      "Content-Type": "application/json"
-    }
+    body: formData, // 将前端获取的 form 传给后端
   })
     .then(response => {
       if (!response.ok) {
         throw new Error("网络响应不正常");
       }
-      return response.blob();
+      activeStep.value = 3
+      return response.json();
     })
-    .then(blob => {
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
-      csvLoading.value = true;
-      link.href = url;
-      link.setAttribute("download", "features.csv"); // 设置下载的文件名为 features.csv
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+    .then(data => {
+      gpFeatures.value = data
+      console.log(gpFeatures.value);
     })
     .catch(error => {
-      console.error("发生了与 fetch 操作相关的问题：", error);
+      ElMessage.error('error:',error)
+      vloading.value = false
     })
     .finally(() => {
       csvLoading.value = false;
+      vloading.value = false
     });
 };
 
@@ -468,6 +656,7 @@ const submit = () => {
   const formData = new FormData();
   formData.append("file", files.value[0]);
   formData.append("n_searches", nSearches.value);
+  formData.append('cv',cv.value);
   formData.append(
     "population_size",
     `${populationSizeMin.value},${populationSizeMax.value}`
@@ -497,9 +686,18 @@ const submit = () => {
     "parsimonyCoefficient",
     `${parsimonycoefficientMin.value},${parsimonycoefficientMax.value}`
   );
+  formData.append(
+    "tournamentSize", 
+  `${tournamentMin.value},${tournamentMax.value}`
+  )
+  formData.append(
+    "randomState", 
+  `${randomstateMin.value},${randomstateMax.value}`
+  )
   formData.append("functionSet", functionSet.value);
   subLoading.value = true;
-  fetch("/file1", {
+  vloading.value = true;
+  fetch("http://localhost:5000/file1", {
     method: "POST",
     body: formData
   })
@@ -511,7 +709,7 @@ const submit = () => {
     })
     .then(data => {
       handleBackendResponse(data);
-      forthStep();
+      // forthStep();
       activeStep.value = 2;
     })
     .catch(error => {
@@ -519,6 +717,7 @@ const submit = () => {
     })
     .finally(() => {
       subLoading.value = false;
+      vloading.value = false;
     });
 };
 const handleError = (error, file, fileList) => {
@@ -526,3 +725,16 @@ const handleError = (error, file, fileList) => {
 };
 
 </script>
+
+
+<style>
+.el-form-item__label {
+	font-weight: 500;
+}
+.el-input__increase{
+  display: none;
+}
+input[type='number']{
+  -moz-appearance: textfield;
+}
+</style>
